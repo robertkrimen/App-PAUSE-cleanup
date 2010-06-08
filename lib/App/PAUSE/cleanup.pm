@@ -1,0 +1,149 @@
+package App::PAUSE::cleanup;
+# ABSTRACT: Delete/undelete your PAUSE files
+
+use strict;
+use warnings;
+
+use Getopt::Usaginator;
+use Term::EditorEdit;
+use Config::Identity::PAUSE;
+use LWP::UserAgent;
+use WWW::Mechanize;
+
+my $agent = WWW::Mechanize->new;
+
+sub run {
+    my $self = shift;
+    my @arguments = @_;
+
+    my %identity = Config::Identity::PAUSE->load;
+    my ( $username, $password ) = @identity{qw/ user password /};
+    
+    $agent->credentials( "pause.perl.org:443", "PAUSE", $username, $password );
+
+    print "> Logging in as $username\n";
+    
+    my $response = $agent->get( 'https://pause.perl.org/pause/authenquery?ACTION=delete_files' );
+    my @filelist =
+                map {
+                        # Package-Pkg-0.0016.tar.gz
+                        m{/>\s*([\S]+)\s+(\d+)\s+(.*)\s*</};
+                        my $tar_gz = $1;
+                        my $size = $2;
+                        my $scheduled = $3;
+                        ( my $package = $tar_gz ) =~ s/-([\d\._]+)\.tar\.gz$//;
+                        my $version = $1;
+                        my $package_version = "$package-$version";
+                        $scheduled = $scheduled =~ m/Scheduled for deletion/ ? 1 : 0;
+                        { package => $package, package_version => $package_version,
+                            version => $version, tar_gz => $tar_gz, size => $size,
+                            scheduled => $scheduled };
+                }
+                grep { m/pause99_delete_files_FILE/ && m/\.tar\.gz/ }
+                split m/\n/, $response->decoded_content;
+
+    my %package;
+    for my $file (@filelist) {
+        push @{ $package{$file->{package}} }, $file;
+    }
+
+    my @document;
+    push @document, <<_END_;
+# Any line not beginning with 'delete', 'undelete', or 'keep' is ignored
+# To take action on a release, remove the leading '#'
+#   
+#   delete      Delete the .meta, .readme, and .tar.gz associated
+#               with the release
+#
+#   undelete    Undelete the .meta, .readme, and .tar.gz (remove
+#               from scheduled deletion
+#
+#   keep        Ignore the release
+#
+#   By default, the latest version of each release is commented 'keep'
+#   Older versions are commented 'delete' (or 'undelete')
+_END_
+
+    for my $name (sort keys %package) { 
+        my @filelist = @{ $package{$name} };
+        @filelist = sort { $a->{scheduled} cmp $b->{scheduled} or
+                           $b->{tar_gz} cmp $a->{tar_gz} } @filelist;
+
+        push @document, "$name:";
+
+        my $latest = shift @filelist;
+        if ( $latest->{scheduled} )
+                { push @document, "# undelete $latest->{package_version}" }
+        else    { push @document, "# keep $latest->{package_version}" }
+
+        push @document,
+            ( map {
+                my $operation = $_->{scheduled} ? "undelete" : "delete";
+                "# $operation $_->{package_version}"
+            } @filelist ),
+            '',
+        ;
+    }
+
+    my $document = join "\n", @document;
+    
+    my $delete_undelete = Term::EditorEdit->edit( document => $document, process => sub {
+        my $edit = shift;
+        my ( @delete, @undelete );
+        my @content = split m/\n/, $edit->content;
+        for my $line ( @content ) {
+            next unless $line =~ m/^\s*(delete|undelete)\s*(\S+)/i;
+            if ( lc $1 eq 'delete' ) { push @delete, $2 }
+            else                     { push @undelete, $2 }
+        }
+        return { delete => \@delete, undelete => \@undelete };
+    } );
+
+    my ( $delete, $undelete ) = @$delete_undelete{qw/ delete undelete /}; 
+
+    if ( @$delete ) {
+        print "\n---\n";
+        print join "\n", '', ( map { " $_" } @$delete ), '', '';
+        print "> Really delete? If you wish to abort, hit ^C (CTRL-C) now!\n";
+        print "> Hit return to continue, or cancel with ^C\n";
+        my $nil = <STDIN>;
+        my $count = scalar @$delete;
+        print "> Deleting $count\n";
+        $self->_delete( $delete );
+    }
+    
+    if ( @$undelete ) {
+        print "\n---\n";
+        print join "\n", '', ( map { " $_" } @$undelete ), '', '';
+        my $count = scalar @$undelete;
+        print "> Undeleting $count\n";
+        $self->_undelete( $undelete );
+    }
+
+    unless ( @$delete || @$undelete ) {
+        print "> Nothing to do\n";
+    }
+}
+
+sub _delete {
+    my $self = shift;
+    $self->_submit( 'SUBMIT_pause99_delete_files_delete', @_ );
+}
+
+sub _undelete {
+    my $self = shift;
+    $self->_submit( 'SUBMIT_pause99_delete_files_undelete', @_ );
+}
+
+sub _submit {
+    my $self = shift;
+    my $button = shift;
+    my $filelist = shift; # Actually, package_version
+
+    my @filelist = map { ( "$_.meta", "$_.readme", "$_.tar.gz" ) } @$filelist;
+    $agent->get( 'https://pause.perl.org/pause/authenquery?ACTION=delete_files' );
+    $agent->tick( 'pause99_delete_files_FILE' => $_ ) for @filelist;
+    $agent->click( $button );
+}
+
+1;

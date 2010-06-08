@@ -1,0 +1,4 @@
+#!/usr/bin/env perl
+
+use App::PAUSE::cleanup;
+App::PAUSE::cleanup->run( @ARGV );
