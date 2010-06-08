@@ -25,7 +25,6 @@ use Getopt::Long qw/ GetOptions /;
 
 use Term::EditorEdit;
 use Config::Identity::PAUSE;
-use LWP::UserAgent;
 use WWW::Mechanize;
 
 my $agent = WWW::Mechanize->new;

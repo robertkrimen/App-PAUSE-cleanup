@@ -7,6 +7,12 @@ use Dzpl
     copyright => 'Robert Krimen',
 
     require => q/
+        Config::Identity 0.0015
+        Getopt::Long
+        Getopt::Usaginator
+        Term::EditorEdit
+        WWW::Mechanize
+
         [Test]
         Test::Most
     /,

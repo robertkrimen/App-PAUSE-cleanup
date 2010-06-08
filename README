@@ -1,5 +1,5 @@
 NAME
-    App::PAUSE::cleanup - Delete/undelete your PAUSE files
+    App::PAUSE::cleanup - Manage (delete/undelete) your PAUSE files
 
 VERSION
     version 0.0010
