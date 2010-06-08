@@ -1,10 +1,28 @@
 package App::PAUSE::cleanup;
-# ABSTRACT: Delete/undelete your PAUSE files
+# ABSTRACT: Manage (delete/undelete) your PAUSE files
 
 use strict;
 use warnings;
 
-use Getopt::Usaginator;
+use Getopt::Usaginator <<_END_;
+
+Usage: pause-cleanup <options>
+
+    --username <username>   Your PAUSE username
+    --password <password>   The password for the above
+                            Instead of supplying your identity on the
+                            commandline, you can setup \$HOME/.pause like so:
+
+                                user <username>
+                                password <password>
+
+    -d, --dump              Dump the list of files to STDOUT
+    
+    -h, -?, --help          This help
+
+_END_
+use Getopt::Long qw/ GetOptions /;
+
 use Term::EditorEdit;
 use Config::Identity::PAUSE;
 use LWP::UserAgent;
@@ -16,9 +34,23 @@ sub run {
     my $self = shift;
     my @arguments = @_;
 
+    my ( $help, $username, $password, $dump );
+    {  
+        local @ARGV = @arguments;
+        GetOptions(
+            'username=s' => \$username,
+            'password=s' => \$password,
+            'dump|d' => \$dump,
+            'help|h|?' => \$help,
+        );
+    }
+
+    usage 0 if $help;
+
     my %identity = Config::Identity::PAUSE->load;
-    my ( $username, $password ) = @identity{qw/ user password /};
-    
+    $username = $identity{user} unless defined $username;
+    $password = $identity{password} unless defined $password;
+
     $agent->credentials( "pause.perl.org:443", "PAUSE", $username, $password );
 
     print "> Logging in as $username\n";
@@ -42,6 +74,12 @@ sub run {
                 grep { m/pause99_delete_files_FILE/ && m/\.tar\.gz/ }
                 split m/\n/, $response->decoded_content;
 
+    if ( $dump ) {
+        print join "\n", map { $_->{package_version} } @filelist;
+        print "\n";
+        return;
+    }
+
     my %package;
     for my $file (@filelist) {
         push @{ $package{$file->{package}} }, $file;
@@ -60,8 +98,8 @@ sub run {
 #
 #   keep        Ignore the release
 #
-#   By default, the latest version of each release is commented 'keep'
-#   Older versions are commented 'delete' (or 'undelete')
+# By default, the latest version of each release is commented 'keep'
+# Older versions are commented 'delete' (or 'undelete')
 _END_
 
     for my $name (sort keys %package) { 
