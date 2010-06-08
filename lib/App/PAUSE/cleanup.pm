@@ -23,6 +23,34 @@ Usage: pause-cleanup <options>
 _END_
 use Getopt::Long qw/ GetOptions /;
 
+=head1 SYNOPSIS
+
+    $ pause-cleanup
+
+    $ pause-cleanup -?
+
+=head1 DESCRIPTION
+
+C<pause-cleanup> is a tool for managing the files in your PAUSE account. Run from the commandline, it will launch $EDITOR (or $VISUAL) with an editable document containing the state of your account. By editing the document you can delete or undelete files
+
+=head1 USAGE
+
+    Usage: pause-cleanup <options>
+
+        --username <username>   Your PAUSE username
+        --password <password>   The password for the above
+                                Instead of supplying your identity on the
+                                commandline, you can setup \$HOME/.pause like so:
+
+                                    user <username>
+                                    password <password>
+
+        -d, --dump              Dump the list of files to STDOUT
+        
+        -h, -?, --help          This help
+
+=cut
+
 use Term::EditorEdit;
 use Config::Identity::PAUSE;
 use WWW::Mechanize;
