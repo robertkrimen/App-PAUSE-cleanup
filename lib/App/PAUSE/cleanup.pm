@@ -78,6 +78,9 @@ sub run {
     $username = $identity{user} unless defined $username;
     $password = $identity{password} unless defined $password;
 
+    usage '! Missing username and/or password' unless
+        defined $username && defined $password;
+
     $agent->credentials( "pause.perl.org:443", "PAUSE", $username, $password );
 
     print "> Logging in as $username\n";
