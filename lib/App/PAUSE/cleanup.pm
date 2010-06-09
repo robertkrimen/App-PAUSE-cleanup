@@ -31,7 +31,7 @@ use Getopt::Long qw/ GetOptions /;
 
 =head1 DESCRIPTION
 
-C<pause-cleanup> is a tool for managing the files in your PAUSE account. Run from the commandline, it will launch $EDITOR (or $VISUAL) with an editable document containing the state of your account. By editing the document you can delete or undelete files
+C<pause-cleanup> is a tool for managing the files in your PAUSE account. Run from the commandline, it will launch C<$EDITOR> (or C<$VISUAL>) with an editable document containing the state of your account. By editing the document you can delete or undelete files
 
 =head1 USAGE
 
@@ -117,6 +117,8 @@ sub run {
 
     my @document;
     push @document, <<_END_;
+# Logged in as $username
+#
 # Any line not beginning with 'delete', 'undelete', or 'keep' is ignored
 # To take action on a release, remove the leading '#'
 #   
