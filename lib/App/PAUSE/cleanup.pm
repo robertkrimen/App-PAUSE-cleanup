@@ -141,10 +141,13 @@ _END_
 
         push @document, "$name:";
 
-        my $latest = shift @filelist;
-        if ( $latest->{scheduled} )
-                { push @document, "# undelete $latest->{package_version}" }
-        else    { push @document, "# keep $latest->{package_version}" }
+        my @latest = $self->extract_latest( \@filelist );
+
+        for my $latest ( @latest ) {
+            if ( $latest->{scheduled} )
+                    { push @document, "# undelete $latest->{package_version}" }
+            else    { push @document, "# keep $latest->{package_version}" }
+        }
 
         push @document,
             ( map {
@@ -203,6 +206,32 @@ sub _delete {
 sub _undelete {
     my $self = shift;
     $self->_submit( 'SUBMIT_pause99_delete_files_undelete', @_ );
+}
+
+sub extract_latest {
+    my $self = shift;
+    my $filelist = shift;
+
+    my @latest;
+    my @filelist;
+    my $found;
+
+    for my $file ( @$filelist ) {
+        if ( $file->{version} =~ m/_/ ) {
+            if ( ! @latest )    { push @latest, $file }
+            else                { push @filelist, $file }
+        }
+        elsif ( ! $found ) {
+            $found = 1;
+            push @latest, $file;
+        }
+        else {
+            push @filelist, $file;
+        }
+    }
+
+    @$filelist = @filelist;
+    return @latest;
 }
 
 sub expand_filelist {

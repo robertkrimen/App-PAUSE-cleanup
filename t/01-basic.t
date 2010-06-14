@@ -7,8 +7,6 @@ use Test::Most 'no_plan';
 
 use App::PAUSE::cleanup;
 
-ok( 1 );
-
 cmp_deeply( [ App::PAUSE::cleanup->expand_filelist( [qw/
     A-1.0
     A-2.0
@@ -29,3 +27,75 @@ cmp_deeply( [ App::PAUSE::cleanup->expand_filelist( [qw/
     B-5_2.tar.gz
 /]
 );
+
+sub _file {
+    my ( $package, $version ) = @_;
+
+    return { package => $package,
+             version => $version,
+             package_version => "${package}-${version}",
+    };
+}
+
+{
+    my ( @filelist, @latest );
+    push @filelist,
+        _file( qw/ A 1_2 / ),
+        _file( qw/ A 1_1 / ),
+        _file( qw/ A 2 / ),
+        _file( qw/ A 1 / ),
+    ;
+    @latest = App::PAUSE::cleanup->extract_latest( \@filelist );
+
+    cmp_deeply( [ map { $_->{package_version} } @latest ], [qw/ A-1_2 A-2 /] );
+    cmp_deeply( [ map { $_->{package_version} } @filelist ], [qw/ A-1_1 A-1 /] );
+}
+
+{
+    my ( @filelist, @latest );
+    push @filelist,
+        _file( qw/ A 1_1 / ),
+        _file( qw/ A 2 / ),
+        _file( qw/ A 1 / ),
+    ;
+    @latest = App::PAUSE::cleanup->extract_latest( \@filelist );
+
+    cmp_deeply( [ map { $_->{package_version} } @latest ], [qw/ A-1_1 A-2 /] );
+    cmp_deeply( [ map { $_->{package_version} } @filelist ], [qw/ A-1 /] );
+}
+
+{
+    my ( @filelist, @latest );
+    push @filelist,
+        _file( qw/ A 2 / ),
+        _file( qw/ A 1 / ),
+    ;
+    @latest = App::PAUSE::cleanup->extract_latest( \@filelist );
+
+    cmp_deeply( [ map { $_->{package_version} } @latest ], [qw/ A-2 /] );
+    cmp_deeply( [ map { $_->{package_version} } @filelist ], [qw/ A-1 /] );
+}
+
+{
+    my ( @filelist, @latest );
+    push @filelist,
+        _file( qw/ A 2 / ),
+        _file( qw/ A 1_1 / ),
+    ;
+    @latest = App::PAUSE::cleanup->extract_latest( \@filelist );
+
+    cmp_deeply( [ map { $_->{package_version} } @latest ], [qw/ A-2 /] );
+    cmp_deeply( [ map { $_->{package_version} } @filelist ], [qw/ A-1_1 /] );
+}
+
+{
+    my ( @filelist, @latest );
+    push @filelist,
+        _file( qw/ A 1_1 / ),
+        _file( qw/ A 2 / ),
+    ;
+    @latest = App::PAUSE::cleanup->extract_latest( \@filelist );
+
+    cmp_deeply( [ map { $_->{package_version} } @latest ], [qw/ A-1_1 A-2 /] );
+    cmp_deeply( [ map { $_->{package_version} } @filelist ], [] );
+}
