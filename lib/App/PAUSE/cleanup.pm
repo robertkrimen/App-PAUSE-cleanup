@@ -205,12 +205,28 @@ sub _undelete {
     $self->_submit( 'SUBMIT_pause99_delete_files_undelete', @_ );
 }
 
+sub expand_filelist {
+    my $self = shift;
+    my $filelist = shift; # Actually, package_version
+
+    my @filelist;
+    for my $package_version (@$filelist) {
+        my $pv = $package_version;
+        my ( $version ) = $pv =~ m/-([\d\._]+)$/;
+        if ( $version =~ m/_/ )
+                { push @filelist, "$pv.tar.gz" }
+        else    { push @filelist, map { ( "$_.meta", "$_.readme", "$_.tar.gz" ) } $pv }
+    }
+
+    return @filelist;
+}
+
 sub _submit {
     my $self = shift;
     my $button = shift;
     my $filelist = shift; # Actually, package_version
-
-    my @filelist = map { ( "$_.meta", "$_.readme", "$_.tar.gz" ) } @$filelist;
+    
+    my @filelist = $self->expand_filelist( $filelist );
     $agent->get( 'https://pause.perl.org/pause/authenquery?ACTION=delete_files' );
     $agent->tick( 'pause99_delete_files_FILE' => $_ ) for @filelist;
     $agent->click( $button );
