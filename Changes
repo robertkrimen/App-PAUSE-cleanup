@@ -1,0 +1,5 @@
+TODO:
+
+0.0011 Monday June 14 12:00:49 PDT 2010:
+    - Better handling of latest
+    - Fix for handling development versions (*_1, etc.)
