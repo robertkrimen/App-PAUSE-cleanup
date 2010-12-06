@@ -2,7 +2,7 @@ NAME
     App::PAUSE::cleanup - Manage (delete/undelete) your PAUSE files
 
 VERSION
-    version 0.0011
+    version 0.0012
 
 SYNOPSIS
         $ pause-cleanup
@@ -31,7 +31,7 @@ USAGE
             -h, -?, --help          This help
 
 AUTHOR
-      Robert Krimen <robertkrimen@gmail.com>
+    Robert Krimen <robertkrimen@gmail.com>
 
 COPYRIGHT AND LICENSE
     This software is copyright (c) 2010 by Robert Krimen.
